@@ -141,8 +141,11 @@ if(type==='login'){
 
  }else{
  panel.innerHTML=`<h2>Профиль</h2>
- <p>Скоро здесь будет ваш профиль.</p>
- <button onclick="closeModal()">Закрыть</button>`;
+ <p id="profileName">Загрузка профиля...</p>
+<button onclick="closeModal()">Закрыть</button>`;
+const user = JSON.parse(sessionStorage.getItem('clipflow_user') || 'null');
+document.getElementById('profileName').textContent =
+  user ? '👤 Никнейм: ' + user.username : 'Войдите в аккаунт';
  }
  document.getElementById('modal').style.display='flex';
 }
