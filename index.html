@@ -58,6 +58,61 @@ nav button{background:none;border:0;color:white;font-size:15px;cursor:pointer}
 </div>
 
 <script>
+ 
+const API = "https://clipflow-2.onrender.com";
+
+async function register() {
+  const username = document.getElementById("regName").value.trim();
+  const email = document.getElementById("regEmail").value.trim();
+  const password = document.getElementById("regPassword").value;
+
+  try {
+    const res = await fetch(API + "/api/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, email, password })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      return alert(data.error || "Ошибка регистрации");
+    }
+
+    alert("Аккаунт создан! Теперь войдите.");
+    openModal("login");
+  } catch (error) {
+    alert("Не удалось связаться с сервером");
+  }
+}
+
+async function login() {
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+
+  try {
+    const res = await fetch(API + "/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      return alert(data.error || "Ошибка входа");
+    }
+
+    sessionStorage.setItem("clipflow_token", data.token);
+    sessionStorage.setItem("clipflow_user", JSON.stringify(data.user));
+
+    alert("Добро пожаловать, " + data.user.username + "!");
+    closeModal();
+  } catch (error) {
+    alert("Не удалось связаться с сервером");
+  }
+}
+
 let likes=0;
 function like(btn){
  likes++;
@@ -68,12 +123,22 @@ function closeModal(){
 }
 function openModal(type){
  const panel=document.getElementById('panel');
- if(type==='login'){
+ 
+if(type==='login'){
  panel.innerHTML=`<h2>Вход</h2>
- <input placeholder="Email" type="email">
- <input placeholder="Пароль" type="password">
- <p>Регистрацию подключим на следующем этапе.</p>
+ <input id="loginEmail" placeholder="Email" type="email">
+ <input id="loginPassword" placeholder="Пароль" type="password">
+ <button onclick="login()">Войти</button>
+ <button onclick="openModal('register')">Регистрация</button>
  <button onclick="closeModal()">Закрыть</button>`;
+}else if(type==='register'){
+ panel.innerHTML=`<h2>Регистрация</h2>
+ <input id="regName" placeholder="Никнейм">
+ <input id="regEmail" placeholder="Email" type="email">
+ <input id="regPassword" placeholder="Пароль (минимум 8 символов)" type="password">
+ <button onclick="register()">Создать аккаунт</button>
+ <button onclick="openModal('login')">Назад</button>`;
+
  }else{
  panel.innerHTML=`<h2>Профиль</h2>
  <p>Скоро здесь будет ваш профиль.</p>
