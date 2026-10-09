@@ -2,9 +2,14 @@
 const express = require("express");
 const path = require("path");
 const crypto = require("crypto");
+const { createClient } = require("@supabase/supabase-js");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SECRET_KEY
+);
 
 app.use(express.json({ limit: "20kb" }));
 app.use((req, res, next) => {
