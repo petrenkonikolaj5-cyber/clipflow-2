@@ -20,13 +20,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Временное хранилище для тестирования
-const users = new Map();
+
 const sessions = new Map();
 
-function hashPassword(password, salt) {
-  return crypto.scryptSync(password, salt, 64).toString("hex");
-}
+
 
 function publicUser(user) {
   return {
@@ -40,7 +37,7 @@ app.get("/api/health", (req, res) => {
 });
 
 // Регистрация
-app.post("/api/register", (req, res) => {
+app.post("/api/register", async (req, res) => {
   const { username, email, password } = req.body || {};
 
   if (
@@ -60,23 +57,25 @@ app.post("/api/register", (req, res) => {
 
   const key = email.trim().toLowerCase();
 
-  if (users.has(key)) {
-    return res.status(409).json({
-      error: "Такой Email уже зарегистрирован"
-    });
-  }
+  
 
-  const salt = crypto.randomBytes(16).toString("hex");
+  const { data, error } = await supabase.auth.admin.createUser({
+  email: key,
+  password,
+  email_confirm: true,
+  user_metadata: { username: username.trim() }
+});
 
-  const user = {
-    id: crypto.randomUUID(),
-    username: username.trim(),
-    email: key,
-    salt,
-    passwordHash: hashPassword(password, salt)
-  };
+if (error || !data?.user) {
+  return res.status(400).json({
+    error: error?.message || "Ошибка регистрации"
+  });
+}
 
-  users.set(key, user);
+const user = {
+  id: data.user.id,
+  username: data.user.user_metadata?.username || username.trim()
+};
 
   res.status(201).json({
     message: "Аккаунт создан",
@@ -85,7 +84,7 @@ app.post("/api/register", (req, res) => {
 });
 
 // Вход
-app.post("/api/login", (req, res) => {
+app.post("/api/login", async (req, res) => {
   const { email, password } = req.body || {};
 
   if (typeof email !== "string" ||
@@ -95,32 +94,28 @@ app.post("/api/login", (req, res) => {
     });
   }
 
-  const user = users.get(email.trim().toLowerCase());
+  const { data: loginData, error: loginError } =
+  await supabase.auth.signInWithPassword({
+    email: email.trim().toLowerCase(),
+    password
+  });
 
-  if (!user || password.length > 128) {
-    return res.status(401).json({
-      error: "Неверный Email или пароль"
-    });
-  }
-
-  const suppliedHash = Buffer.from(
-    hashPassword(password, user.salt), "hex"
-  );
-  const storedHash = Buffer.from(user.passwordHash, "hex");
-
-  if (!crypto.timingSafeEqual(suppliedHash, storedHash)) {
-    return res.status(401).json({
-      error: "Неверный Email или пароль"
-    });
-  }
+if (loginError || !loginData.user) {
+  return res.status(401).json({
+    error: "Неверный Email или пароль"
+  });
+}
 
   const token = crypto.randomBytes(32).toString("hex");
-  sessions.set(token, user.id);
+  sessions.set(token, loginData.user.id);
 
   res.json({
     message: "Вход выполнен",
     token,
-    user: publicUser(user)
+    user: {
+  id: loginData.user.id,
+  username: loginData.user.user_metadata?.username || "Пользователь"
+}
   });
 });
 
