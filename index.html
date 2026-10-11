@@ -246,6 +246,40 @@ function watchVideos() {
 }
 
 watchVideos();
+ async function loadSavedVideos() {
+  try {
+    const response = await fetch('/api/videos');
+    if (!response.ok) throw new Error('Ошибка получения видео');
+
+    const videos = await response.json();
+    const feed = document.getElementById('feed');
+
+    for (const item of videos) {
+      if (!item.url) continue;
+
+      const card = document.createElement('section');
+      card.className = 'video-card';
+
+      const video = document.createElement('video');
+      video.src = item.url;
+      video.controls = true;
+      video.loop = true;
+      video.playsInline = true;
+      card.appendChild(video);
+
+      const info = document.createElement('div');
+      info.className = 'info';
+      info.textContent = '@you — Видео';
+      card.appendChild(info);
+
+      feed.appendChild(card);
+    }
+  } catch (error) {
+    console.error('Не удалось загрузить ленту:', error);
+  }
+}
+
+loadSavedVideos();
 
 new MutationObserver(watchVideos).observe(
   document.getElementById('feed'),
