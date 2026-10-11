@@ -224,6 +224,33 @@ function share(){
 function home(){
  document.getElementById('feed').scrollTop=0;
 }
+const videoObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    const video = entry.target;
+
+    if (!entry.isIntersecting || entry.intersectionRatio < 0.6) {
+      video.pause();
+    } else {
+      document.querySelectorAll('#feed video').forEach(other => {
+        if (other !== video) other.pause();
+      });
+      video.play().catch(() => {});
+    }
+  });
+}, { threshold: [0, 0.6, 1] });
+
+function watchVideos() {
+  document.querySelectorAll('#feed video').forEach(video => {
+    videoObserver.observe(video);
+  });
+}
+
+watchVideos();
+
+new MutationObserver(watchVideos).observe(
+  document.getElementById('feed'),
+  { childList: true, subtree: true }
+); 
 </script>
 </body>
 </html>
