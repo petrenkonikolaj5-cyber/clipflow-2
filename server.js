@@ -6,6 +6,7 @@ const { createClient } = require("@supabase/supabase-js");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+console.log("Supabase key type:", process.env.SUPABASE_SECRET_KEY?.startsWith("sb_secret_") ? "secret" : process.env.SUPABASE_SECRET_KEY?.startsWith("eyJ") ? "legacy JWT" : "unknown");
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SECRET_KEY
