@@ -123,6 +123,45 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
+app.post("/api/videos/upload", express.raw({
+  type: "video/*",
+  limit: "50mb"
+}), async (req, res) => {
+  try {
+    const auth = req.headers.authorization || "";
+    const token = auth.replace(/^Bearer\s+/i, "");
+    const userId = sessions.get(token);
+
+    if (!userId) {
+      return res.status(401).json({ error: "Сначала войдите в аккаунт" });
+    }
+
+    if (!req.body?.length) {
+      return res.status(400).json({ error: "Видео не выбрано" });
+    }
+
+    const contentType = req.headers["content-type"];
+    const extension = contentType === "video/mp4" ? "mp4" : "webm";
+    const filePath = `${userId}/${crypto.randomUUID()}.${extension}`;
+
+    const { error } = await supabase.storage
+      .from("videos")
+      .upload(filePath, req.body, { contentType });
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    const { data } = supabase.storage
+      .from("videos")
+      .getPublicUrl(filePath);
+
+    res.status(201).json({ url: data.publicUrl });
+  } catch (error) {
+    res.status(500).json({ error: "Ошибка загрузки видео" });
+  }
+});
+
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`ClipFlow 2.0 запущен на порту ${PORT}`);
 });
