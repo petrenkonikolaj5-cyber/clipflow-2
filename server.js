@@ -11,6 +11,16 @@ const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SECRET_KEY
 );
+const supabaseStorage = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SECRET_KEY,
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false
+    }
+  }
+);
 
 app.use(express.json({ limit: "20kb" }));
 app.use((req, res, next) => {
@@ -145,7 +155,7 @@ app.post("/api/videos/upload", express.raw({
     const extension = contentType === "video/mp4" ? "mp4" : "webm";
     const filePath = `${userId}/${crypto.randomUUID()}.${extension}`;
 
-    const { error } = await supabase.storage
+    const { error } = await supabaseStorage.storage
       .from("videos")
       .upload(filePath, req.body, { contentType });
 
@@ -153,7 +163,7 @@ app.post("/api/videos/upload", express.raw({
       return res.status(500).json({ error: error.message });
     }
 
-    const { data } = supabase.storage
+    const { data } = supabaseStorage.storage
       .from("videos")
       .getPublicUrl(filePath);
 
