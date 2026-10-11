@@ -157,26 +157,58 @@ function upload(){
  <button onclick="closeModal()">Закрыть</button>`;
  document.getElementById('modal').style.display='flex';
 }
-function addVideo(){
- const file=document.getElementById('file').files[0];
- if(!file)return alert('Выберите видео');
- const url=URL.createObjectURL(file);
- const card=document.createElement('section');
- card.className='video-card';
- const v=document.createElement('video');
- v.src=url;
- v.controls=true;
- v.loop=true;
- v.playsInline=true;
- card.appendChild(v);
- const info=document.createElement('div');
- info.className='info';
- info.textContent='@you — Моё видео';
- card.appendChild(info);
- document.getElementById('feed').prepend(card);
- closeModal();
- card.scrollIntoView();
+
+async function addVideo(){
+  const file = document.getElementById('file').files[0];
+  if (!file) return alert('Выберите видео');
+
+  const token = sessionStorage.getItem('clipflow_token');
+  if (!token) return alert('Сначала войдите в аккаунт');
+
+  if (file.size > 50 * 1024 * 1024) {
+    return alert('Видео должно быть меньше 50 МБ');
+  }
+
+  try {
+    const response = await fetch('/api/videos/upload', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': file.type
+      },
+      body: file
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.error || 'Ошибка загрузки');
+    }
+
+    const card = document.createElement('section');
+    card.className = 'video-card';
+
+    const video = document.createElement('video');
+    video.src = result.url;
+    video.controls = true;
+    video.loop = true;
+    video.playsInline = true;
+    card.appendChild(video);
+
+    const info = document.createElement('div');
+    info.className = 'info';
+    info.textContent = '@you — Моё видео';
+    card.appendChild(info);
+
+    document.getElementById('feed').prepend(card);
+    closeModal();
+    card.scrollIntoView();
+
+    alert('Видео сохранено в Supabase!');
+  } catch (error) {
+    alert('Ошибка: ' + error.message);
+  }
 }
+
 function comments(){
  alert('Комментарии добавим позже');
 }
