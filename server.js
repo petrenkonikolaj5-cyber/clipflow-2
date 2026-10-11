@@ -172,6 +172,44 @@ app.post("/api/videos/upload", express.raw({
     res.status(500).json({ error: "Ошибка загрузки видео" });
   }
 });
+app.get("/api/videos", async (req, res) => {
+  try {
+    const { data: folders, error } = await supabaseStorage.storage
+      .from("videos")
+      .list("", { limit: 100 });
+
+    if (error) throw error;
+
+    const videos = [];
+
+    for (const folder of folders || []) {
+      const { data: files, error: listError } = await supabaseStorage.storage
+        .from("videos")
+        .list(folder.name, { limit: 100, sortBy: { column: "created_at", order: "desc" } });
+
+      if (listError) throw listError;
+
+      for (const file of files || []) {
+        if (!file.id) continue;
+
+        const path = `${folder.name}/${file.name}`;
+        const { data } = supabaseStorage.storage
+          .from("videos")
+          .getPublicUrl(path);
+
+        videos.push({
+          url: data.publicUrl,
+          created_at: file.created_at
+        });
+      }
+    }
+
+    videos.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    res.json(videos);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`ClipFlow 2.0 запущен на порту ${PORT}`);
