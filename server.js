@@ -210,6 +210,35 @@ app.get("/api/videos", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+app.post("/api/videos/like", express.json(), async (req, res) => {
+  try {
+    const token = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+    const userId = sessions.get(token);
+
+    if (!userId) {
+      return res.status(401).json({ error: "Сначала войдите в аккаунт" });
+    }
+
+    const { videoPath } = req.body;
+    if (typeof videoPath !== "string" ||
+        !/^[a-zA-Z0-9_-]+\/[a-zA-Z0-9_.-]+$/.test(videoPath)) {
+      return res.status(400).json({ error: "Неверное видео" });
+    }
+
+    const { data, error } = await supabaseStorage
+      .from("video_likes")
+      .upsert(
+        { user_id: userId, video_path: videoPath },
+        { onConflict: "user_id,video_path" }
+      );
+
+    if (error) throw error;
+
+    res.json({ liked: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`ClipFlow 2.0 запущен на порту ${PORT}`);
