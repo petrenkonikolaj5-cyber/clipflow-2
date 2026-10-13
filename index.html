@@ -320,6 +320,23 @@ likeButton.onclick = async () => {
     return;
   }
 
+  if (likeButton.disabled) return;
+
+  const oldLiked = likeInfo.liked;
+  const oldCount = likeInfo.count;
+
+  // Мгновенно обновляем сердечко
+  likeInfo.liked = !oldLiked;
+  likeInfo.count = Math.max(
+    0,
+    oldCount + (likeInfo.liked ? 1 : -1)
+  );
+
+  likeButton.textContent =
+    (likeInfo.liked ? '❤️ ' : '🤍 ') + likeInfo.count;
+
+  likeButton.disabled = true;
+
   try {
     const response = await fetch('/api/videos/like', {
       method: 'POST',
@@ -331,20 +348,31 @@ likeButton.onclick = async () => {
     });
 
     const result = await response.json();
-    if (!response.ok) throw new Error(result.error || 'Ошибка лайка');
 
-    likeInfo.liked = result.liked;
+    if (!response.ok) {
+      throw new Error(result.error || 'Ошибка лайка');
+    }
 
-if (result.liked) {
-  likeInfo.count++;
-} else {
-  likeInfo.count = Math.max(0, likeInfo.count - 1);
-}
+    // Согласовываем состояние с сервером
+    if (result.liked !== likeInfo.liked) {
+      likeInfo.liked = result.liked;
+      likeInfo.count = oldCount +
+        (result.liked === oldLiked ? 0 : result.liked ? 1 : -1);
 
-likeButton.textContent =
-  (likeInfo.liked ? '❤️ ' : '🤍 ') + likeInfo.count;
+      likeButton.textContent =
+        (likeInfo.liked ? '❤️ ' : '🤍 ') + likeInfo.count;
+    }
   } catch (error) {
+    // При ошибке возвращаем прежнее состояние
+    likeInfo.liked = oldLiked;
+    likeInfo.count = oldCount;
+
+    likeButton.textContent =
+      (oldLiked ? '❤️ ' : '🤍 ') + oldCount;
+
     alert(error.message);
+  } finally {
+    likeButton.disabled = false;
   }
 };
 
