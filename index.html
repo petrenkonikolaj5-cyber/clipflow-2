@@ -333,12 +333,16 @@ likeButton.onclick = async () => {
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Ошибка лайка');
 
-    if (!likeInfo.liked) {
+    likeInfo.liked = result.liked;
+
+if (result.liked) {
   likeInfo.count++;
-  likeInfo.liked = true;
+} else {
+  likeInfo.count = Math.max(0, likeInfo.count - 1);
 }
 
-likeButton.textContent = '❤️ ' + likeInfo.count;
+likeButton.textContent =
+  (likeInfo.liked ? '❤️ ' : '🤍 ') + likeInfo.count;
   } catch (error) {
     alert(error.message);
   }
