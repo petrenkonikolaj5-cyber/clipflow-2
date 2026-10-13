@@ -225,16 +225,32 @@ app.post("/api/videos/like", express.json(), async (req, res) => {
       return res.status(400).json({ error: "Неверное видео" });
     }
 
-    const { data, error } = await supabaseStorage
-      .from("video_likes")
-      .upsert(
-        { user_id: userId, video_path: videoPath },
-        { onConflict: "user_id,video_path" }
-      );
+   const { data: existing, error: checkError } = await supabaseStorage
+  .from("video_likes")
+  .select("id")
+  .eq("user_id", userId)
+  .eq("video_path", videoPath)
+  .maybeSingle();
 
-    if (error) throw error;
+if (checkError) throw checkError;
 
-    res.json({ liked: true });
+if (existing) {
+  const { error } = await supabaseStorage
+    .from("video_likes")
+    .delete()
+    .eq("user_id", userId)
+    .eq("video_path", videoPath);
+
+  if (error) throw error;
+  res.json({ liked: false });
+} else {
+  const { error } = await supabaseStorage
+    .from("video_likes")
+    .insert({ user_id: userId, video_path: videoPath });
+
+  if (error) throw error;
+  res.json({ liked: true });
+} 
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
