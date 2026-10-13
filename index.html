@@ -23,6 +23,29 @@ nav button{background:none;border:0;color:white;font-size:15px;cursor:pointer}
 .panel{background:#222;padding:25px;border-radius:16px;width:min(400px,100%)}
 .panel input{width:100%;padding:13px;margin:8px 0;background:#111;color:white;border:1px solid #555;border-radius:8px}
 .panel button{padding:12px;margin:5px;border:0;border-radius:8px;cursor:pointer}
+.like-button {
+  position: absolute;
+  right: 16px;
+  bottom: 150px;
+  z-index: 10;
+  width: 64px;
+  height: 64px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(20, 20, 20, 0.75);
+  color: white;
+  font-size: 22px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.like-button:active {
+  transform: scale(1.12);
+}
 </style>
 </head>
 <body>
