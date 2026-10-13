@@ -240,6 +240,37 @@ app.post("/api/videos/like", express.json(), async (req, res) => {
   }
 });
 
+app.get("/api/videos/likes", async (req, res) => {
+  try {
+    const token = (req.headers.authorization || "")
+      .replace(/^Bearer\s+/i, "");
+    const userId = sessions.get(token);
+
+    const { data, error } = await supabaseStorage
+      .from("video_likes")
+      .select("user_id, video_path");
+
+    if (error) throw error;
+
+    const likes = {};
+
+    for (const row of data || []) {
+      if (!likes[row.video_path]) {
+        likes[row.video_path] = { count: 0, liked: false };
+      }
+
+      likes[row.video_path].count++;
+
+      if (userId && row.user_id === userId) {
+        likes[row.video_path].liked = true;
+      }
+    }
+
+    res.json(likes);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`ClipFlow 2.0 запущен на порту ${PORT}`);
 });
