@@ -312,7 +312,55 @@ const likeInfo = likesData[videoPath] || { count: 0, liked: false };
 
 likeButton.textContent =
   (likeInfo.liked ? '❤️ ' : '🤍 ') + likeInfo.count;     
-likeButton.onclick = async () => {
+let likeBusy = false;
+let wantedLiked = likeInfo.liked;
+let savedLiked = likeInfo.liked;
+
+function showLike() {
+  likeInfo.liked = wantedLiked;
+  likeButton.textContent =
+    (wantedLiked ? '❤️ ' : '🤍 ') + likeInfo.count;
+}
+
+async function saveLike() {
+  if (likeBusy) return;
+  likeBusy = true;
+
+  try {
+    while (savedLiked !== wantedLiked) {
+      const token = sessionStorage.getItem('clipflow_token');
+
+      const response = await fetch('/api/videos/like', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({ videoPath })
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Ошибка лайка');
+      }
+
+      savedLiked = result.liked;
+    }
+  } catch (error) {
+    wantedLiked = savedLiked;
+    likeInfo.count = Math.max(
+      0,
+      likeInfo.count + (savedLiked ? 1 : -1)
+    );
+    showLike();
+    alert(error.message);
+  } finally {
+    likeBusy = false;
+    if (savedLiked !== wantedLiked) saveLike();
+  }
+}
+
+likeButton.onclick = () => {
   const token = sessionStorage.getItem('clipflow_token');
 
   if (!token) {
@@ -320,60 +368,14 @@ likeButton.onclick = async () => {
     return;
   }
 
-  if (likeButton.disabled) return;
-
-  const oldLiked = likeInfo.liked;
-  const oldCount = likeInfo.count;
-
-  // Мгновенно обновляем сердечко
-  likeInfo.liked = !oldLiked;
+  wantedLiked = !wantedLiked;
   likeInfo.count = Math.max(
     0,
-    oldCount + (likeInfo.liked ? 1 : -1)
+    likeInfo.count + (wantedLiked ? 1 : -1)
   );
 
-  likeButton.textContent =
-    (likeInfo.liked ? '❤️ ' : '🤍 ') + likeInfo.count;
-
-  likeButton.disabled = true;
-
-  try {
-    const response = await fetch('/api/videos/like', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + token
-      },
-      body: JSON.stringify({ videoPath })
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.error || 'Ошибка лайка');
-    }
-
-    // Согласовываем состояние с сервером
-    if (result.liked !== likeInfo.liked) {
-      likeInfo.liked = result.liked;
-      likeInfo.count = oldCount +
-        (result.liked === oldLiked ? 0 : result.liked ? 1 : -1);
-
-      likeButton.textContent =
-        (likeInfo.liked ? '❤️ ' : '🤍 ') + likeInfo.count;
-    }
-  } catch (error) {
-    // При ошибке возвращаем прежнее состояние
-    likeInfo.liked = oldLiked;
-    likeInfo.count = oldCount;
-
-    likeButton.textContent =
-      (oldLiked ? '❤️ ' : '🤍 ') + oldCount;
-
-    alert(error.message);
-  } finally {
-    likeButton.disabled = false;
-  }
+  showLike();
+  saveLike();
 };
 
 card.appendChild(likeButton);
