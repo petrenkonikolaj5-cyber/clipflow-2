@@ -254,6 +254,13 @@ watchVideos();
     const videos = await response.json();
     const feed = document.getElementById('feed');
 
+   const token = sessionStorage.getItem('clipflow_token');
+
+const likesResponse = await fetch('/api/videos/likes', {
+  headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+});
+
+const likesData = likesResponse.ok ? await likesResponse.json() : {};
     for (const item of videos) {
       if (!item.url) continue;
 
@@ -272,6 +279,49 @@ watchVideos();
       info.textContent = '@you — Видео';
       card.appendChild(info);
 
+     const likeButton = document.createElement('button');
+likeButton.textContent = '🤍 0';
+likeButton.className = 'like-button';
+
+const videoPath = new URL(item.url).pathname.split('/videos/')[1];
+
+const likeInfo = likesData[videoPath] || { count: 0, liked: false };
+
+likeButton.textContent =
+  (likeInfo.liked ? '❤️ ' : '🤍 ') + likeInfo.count;     
+likeButton.onclick = async () => {
+  const token = sessionStorage.getItem('clipflow_token');
+
+  if (!token) {
+    alert('Сначала войдите в аккаунт');
+    return;
+  }
+
+  try {
+    const response = await fetch('/api/videos/like', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      body: JSON.stringify({ videoPath })
+    });
+
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Ошибка лайка');
+
+    if (!likeInfo.liked) {
+  likeInfo.count++;
+  likeInfo.liked = true;
+}
+
+likeButton.textContent = '❤️ ' + likeInfo.count;
+  } catch (error) {
+    alert(error.message);
+  }
+};
+
+card.appendChild(likeButton);
       feed.appendChild(card);
     }
   } catch (error) {
