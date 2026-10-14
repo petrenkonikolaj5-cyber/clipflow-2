@@ -233,12 +233,38 @@ async function addVideo(){
 }
 
 function comments() {
-  const button = document.querySelector('.like-button[data-comments="true"]');
-  if (button) {
-    button.click();
-  } else {
-    alert('Откройте видео, чтобы оставить комментарий');
-  }
+  const video = document.querySelector('.video-card video');
+  if (!video) return;
+
+  const text = prompt('Напиши комментарий:');
+  if (!text || !text.trim()) return;
+
+  const token = sessionStorage.getItem('clipflow_token');
+
+if (!token) {
+  alert('Сначала войдите в аккаунт');
+  return;
+}
+
+const videoPath = 'demo-video';
+
+fetch('/api/videos/comments', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer ' + token
+  },
+  body: JSON.stringify({
+    videoPath,
+    comment: text.trim()
+  })
+})
+.then(async response => {
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || 'Ошибка');
+  alert('Комментарий опубликован!');
+})
+.catch(error => alert(error.message));
 }
 function share(){
  if(navigator.share){
