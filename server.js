@@ -287,6 +287,98 @@ app.get("/api/videos/likes", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+app.post("/api/videos/comments", async (req, res) => {
+  try {
+    const token = (req.headers.authorization || "")
+      .replace(/^Bearer\s+/i, "");
+
+    const userId = sessions.get(token);
+
+    if (!userId) {
+      return res.status(401).json({
+        error: "Сначала войдите в аккаунт"
+      });
+    }
+
+    const { videoPath, comment } = req.body;
+
+    if (
+      typeof videoPath !== "string" ||
+      !videoPath.trim() ||
+      videoPath.length > 500 ||
+      typeof comment !== "string" ||
+      !comment.trim() ||
+      comment.trim().length > 500
+    ) {
+      return res.status(400).json({
+        error: "Неверный комментарий"
+      });
+    }
+
+    const { data: userData, error: userError } =
+      await supabaseStorage.auth.admin.getUserById(userId);
+
+    if (userError || !userData?.user) {
+      return res.status(401).json({
+        error: "Пользователь не найден"
+      });
+    }
+
+    const username =
+      userData.user.user_metadata?.username ||
+      userData.user.email?.split("@")[0] ||
+      "Пользователь";
+
+    const { data, error } = await supabaseStorage
+      .from("video_comments")
+      .insert({
+        user_id: userId,
+        video_path: videoPath,
+        username: username,
+        comment: comment.trim()
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({
+      error: error.message
+    });
+  }
+});
+app.get("/api/videos/comments", async (req, res) => {
+  try {
+    const videoPath = req.query.videoPath;
+
+    if (
+      typeof videoPath !== "string" ||
+      !videoPath.trim() ||
+      videoPath.length > 500
+    ) {
+      return res.status(400).json({
+        error: "Неверное видео"
+      });
+    }
+
+    const { data, error } = await supabaseStorage
+      .from("video_comments")
+      .select("id, username, comment, created_at")
+      .eq("video_path", videoPath)
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    if (error) throw error;
+
+    res.json(data || []);
+  } catch (error) {
+    res.status(500).json({
+      error: error.message
+    });
+  }
+});
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`ClipFlow 2.0 запущен на порту ${PORT}`);
 });
