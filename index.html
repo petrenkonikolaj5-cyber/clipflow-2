@@ -232,8 +232,13 @@ async function addVideo(){
   }
 }
 
-function comments(){
- alert('Комментарии добавим позже');
+function comments() {
+  const button = document.querySelector('.like-button[data-comments="true"]');
+  if (button) {
+    button.click();
+  } else {
+    alert('Откройте видео, чтобы оставить комментарий');
+  }
 }
 function share(){
  if(navigator.share){
@@ -380,6 +385,7 @@ likeButton.onclick = () => {
 
 card.appendChild(likeButton);
       const commentButton = document.createElement('button');
+      commentButton.dataset.comments = 'true';
 commentButton.className = 'like-button';
 commentButton.textContent = '💬';
 commentButton.style.bottom = '90px';
