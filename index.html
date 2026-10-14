@@ -262,7 +262,23 @@ fetch('/api/videos/comments', {
 .then(async response => {
   const result = await response.json();
   if (!response.ok) throw new Error(result.error || 'Ошибка');
-  alert('Комментарий опубликован!');
+  const commentsResponse = await fetch(
+  '/api/videos/comments?videoPath=' + encodeURIComponent(videoPath)
+);
+
+if (!commentsResponse.ok) {
+  throw new Error('Не удалось загрузить комментарии');
+}
+
+const commentsList = await commentsResponse.json();
+
+alert(
+  commentsList.length
+    ? commentsList.map(item =>
+        item.username + ': ' + item.comment
+      ).join('\n\n')
+    : 'Комментариев пока нет'
+);
 })
 .catch(error => alert(error.message));
 }
